@@ -1,0 +1,5 @@
+{
+  "name": "图片借鉴生成",
+  "description": "基于 Gemini 3 Pro 的高级图像生成工具，支持人物特征提取、参考图网格反推及 2K 高清渲染。",
+  "requestFramePermissions": []
+}
