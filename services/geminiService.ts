@@ -29,34 +29,38 @@ export const analyzePrompt = async (
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
   const styleInstruction = useReferenceStyle
-    ? `3. ATMOSPHERE CLONING: Replicate the lighting from Image 2 (e.g., Soft Focus, Bokeh, Warm Glow).`
-    : `3. ATMOSPHERE: High-end commercial studio lighting.`;
+    ? `3. 大气克隆：复制图2的光影（如柔焦、虚化、暖光）。`
+    : `3. 大气：高品质商业摄影棚灯光。`;
 
   const hairInstruction = useReferenceHair
-    ? `4. HAIR OVERRIDE: Ignore Image 1's hair. Replicate Image 2's hair style and color exactly.`
-    : `4. HAIR PRESERVATION: Keep hair DNA from Image 1.`;
+    ? `4. 发型覆盖：忽略图1的发型，完全复制图2的发型和颜色。`
+    : `4. 发型保留：保留图1的人脸及发型基因。`;
 
   const expressionInstruction = useReferenceExpression
-    ? `5. EXPRESSION CLONING: Analyze the micro-expressions in Image 2. Describe the eye contact, mouth curvature, and emotional vibe. Replicate this exact mood in the script.`
-    : `5. POSITIVE EXPRESSION ENGINE: Do NOT follow Image 2's expression. Instead, generate a variety of natural positive emotions for the shots, such as: 'Gentle Serene Smile', 'Playful Glance', 'Elegant Joy', 'Soft Dreamy Look'. Ensure all expressions are attractive and positive.`;
+    ? `5. 表情克隆：分析图2的微表情（眼神、嘴角弧度、情绪氛围），并将其转化到脚本中。`
+    : `5. 正面表情引擎：忽略图2表情，生成一系列自然亲和的正面情绪描述（如：恬静微笑、俏皮眼神、优雅喜悦、梦幻神情）。`;
 
-  const prompt = `Analyze images to create a visual script for Gemini 3 Pro.
-  Task: Extract face from Image 1, layout and style from Image 2.
+  const prompt = `分析图像为 Gemini 3 Pro 编写视觉脚本。
+  任务：提取图1的人脸，提取图2的构图、景别和风格。
+  
+  关键要求：
+  1. 景别一致性：深度分析图2的每一帧是【全身】、【半身】还是【特写】，必须在脚本中明确指定景别（Shot Size）。
+  2. 角色提取：从图1提取面部细节。
   ${styleInstruction}
   ${hairInstruction}
   ${expressionInstruction}
-  6. DETAILED OUTFIT: Describe fabrics (velvet, lace), decorations (ribbons, bows).
-  7. ANATOMY: RELAXED ELEGANT HANDS, NO FISTS.
+  6. 服饰细节：描述织物（天鹅绒、蕾丝）、装饰物。
+  7. 肢体：放松优雅的手部，严禁握拳。
   
-  Return JSON:
+  返回 JSON 格式：
   {
-    "subject": "Detailed model description",
-    "appearance": "string",
-    "physique": "string",
-    "background": "string",
-    "style": "string",
+    "subject": "详细的角色描述",
+    "appearance": "服饰细节",
+    "physique": "体态描述",
+    "background": "背景环境",
+    "style": "视觉风格",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["FRAME 1: [Detailed Angle/Expression/Action Description]", "..."]
+    "shots": ["分镜 1: [景别：全身/半身/特写] + [角度] + [具体表情] + [动作]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -72,7 +76,8 @@ export const analyzePrompt = async (
   });
 
   try {
-    const data = JSON.parse(response.text.replace(/```json|```/g, '').trim());
+    const text = response.text.replace(/```json|```/g, '').trim();
+    const data = JSON.parse(text);
     return {
       subject: data.subject || "Detailed model",
       appearance: data.appearance || "intricate outfit",
@@ -86,7 +91,7 @@ export const analyzePrompt = async (
       shots: data.shots || []
     };
   } catch (e) {
-    throw new Error("视觉脚本分析失败。");
+    throw new Error("视觉脚本分析失败，请检查图像质量或 API 状态。");
   }
 };
 
@@ -100,20 +105,23 @@ export const generateImage = async (
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   const compressedChar = await compressImage(characterBase64);
 
-  const gridDesc = analysis.gridType === '9-grid' ? '3x3 GRID MATRIX' : 
-                   analysis.gridType === '4-grid' ? '2x2 GRID MATRIX' : 
-                   'SINGLE FRAME';
+  const gridDesc = analysis.gridType === '9-grid' ? '3x3 GRID MATRIX (9 PANELS)' : 
+                   analysis.gridType === '4-grid' ? '2x2 GRID MATRIX (4 PANELS)' : 
+                   'SINGLE LARGE FRAME';
 
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
 
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
-    STYLE: ${analysis.style}, soft lighting, warm bokeh.
-    SUBJECT: ${analysis.subject}
+    VISUAL STYLE: ${analysis.style}, soft lighting.
+    CHARACTER DNA: ${analysis.subject}
     OUTFIT: ${analysis.appearance}
-    RULES: RELAXED ELEGANT HANDS, NO FISTS. FACE FIDELITY TO IMAGE 1.
-    SCRIPT:
+    BACKGROUND: ${analysis.background}
+    CRITICAL RULES: RELAXED ELEGANT HANDS. FACE MUST LOOK LIKE IMAGE 1. 
+    ADHERE TO THE SPECIFIC SHOT SIZES (Full body, medium, close-up) IN THE SCRIPT.
+    
+    DETAILED SCRIPT:
     ${analysis.shots?.join('\n\n') || ''}
   `;
 
@@ -137,7 +145,7 @@ export const generateImage = async (
   for (const part of parts) {
     if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
   }
-  throw new Error("图像生成失败。");
+  throw new Error("初始网格生成失败。");
 };
 
 export const upscaleImage = async (
@@ -148,20 +156,20 @@ export const upscaleImage = async (
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
-  // 核心修复：极致严厉的单图指令
   const response = await ai.models.generateContent({
     model: AppModel.PRO,
     contents: {
       parts: [
         { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } },
-        { text: `TASK: 2K HIGH-FIDELITY UPSCALING OF A SINGLE IMAGE.
-        STRICT RULES:
-        1. DO NOT CREATE A GRID, MATRIX, OR MULTIPLE PANELS.
-        2. OUTPUT EXACTLY ONE (1) FULL-FRAME CHARACTER PORTRAIT.
-        3. REMOVE ANY BORDERS OR DIVIDERS.
-        4. FOCUS ONLY ON ENHANCING THE EXISTING SINGLE SUBJECT.
+        { text: `TASK: 2K HIGH-DEFINITION RECONSTRUCTION OF THIS SINGLE SHOT.
         
-        DESCRIPTION OF THE SUBJECT:
+        STRICT OUTPUT RULES:
+        1. OUTPUT ONLY ONE (1) SINGLE SEAMLESS IMAGE.
+        2. NO GRIDS, NO MULTIPLE PANELS, NO COLLAGES.
+        3. NO BORDERS OR WHITE LINES.
+        4. KEEP THE SHOT SIZE (Full body, half body, or close-up) EXACTLY AS IN THE INPUT IMAGE.
+        
+        ENHANCEMENT TARGET:
         ${description.substring(0, 500)}` }
       ]
     },

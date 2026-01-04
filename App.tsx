@@ -82,7 +82,7 @@ const App: React.FC = () => {
 
     try {
       setIsGenerating(true);
-      setStatus('AI 深度视觉脚本分析中...');
+      setStatus('AI 深度视觉脚本与景别分析中...');
       const analysis = await analyzePrompt(
         characterImg, 
         referenceImg, 
@@ -105,7 +105,6 @@ const App: React.FC = () => {
         slices: initialSlices,
         upscaledIndices: [],
         loadingIndices: [],
-        // 核心修改：我们将 analysis.shots 直接存为数组，方便后续按索引提取
         prompt: analysis.shots ? JSON.stringify(analysis.shots) : '', 
         gridType: analysis.gridType,
         selectedRatio: selectedRatio
@@ -131,12 +130,12 @@ const App: React.FC = () => {
     } : h));
 
     try {
-      // 核心修改：仅提取当前分镜的描述，并加入“单人像”前缀
-      let currentShotDesc = "Single character portrait with high detail.";
+      let currentShotDesc = "Focus on a single subject, full body or portrait as visible.";
       try {
         const shots = JSON.parse(item.prompt);
         if (Array.isArray(shots) && shots[idx]) {
-          currentShotDesc = `SINGLE PORTRAIT: ${shots[idx]}`;
+          // 精简指令，去掉任何暗示“网格”或“分镜表”的内容，仅保留对单图的描述
+          currentShotDesc = `ONE SINGLE IMAGE: ${shots[idx]}. Absolutely no grids or splits. Enhance existing single frame content.`;
         }
       } catch(e) {}
 
@@ -149,7 +148,7 @@ const App: React.FC = () => {
         loadingIndices: h.loadingIndices.filter(li => li !== idx)
       } : h));
     } catch (e) {
-      alert(`分镜 ${idx+1} 重塑失败，请检查网络或 Key 额度`);
+      alert(`分镜 ${idx+1} 重塑失败，请检查 API 状态`);
       setHistory(prev => prev.map(h => h.id === id ? {
         ...h,
         loadingIndices: h.loadingIndices.filter(li => li !== idx)
@@ -159,9 +158,16 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFBF9] font-sans text-slate-800 pb-20">
+      {/* 全屏放大预览功能 */}
       {previewImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-md" onClick={() => setPreviewImage(null)}>
-          <img src={previewImage} className="max-h-[95vh] rounded-[2rem] shadow-2xl animate-in zoom-in-95" />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-3xl" onClick={() => setPreviewImage(null)}>
+          <div className="relative max-w-full max-h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+             <img src={previewImage} className="max-h-[95vh] max-w-[95vw] rounded-[2rem] shadow-2xl animate-in zoom-in-95 cursor-zoom-out" onClick={() => setPreviewImage(null)} />
+             <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 p-3 rounded-full backdrop-blur-md text-white transition-all">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
+             </button>
+             <div className="absolute bottom-8 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full text-white text-[10px] font-black tracking-widest uppercase">点击任意位置退出预览</div>
+          </div>
         </div>
       )}
 
@@ -177,7 +183,7 @@ const App: React.FC = () => {
               <div className="space-y-4">
                 <input type="password" value={manualApiKey} onChange={e => setManualApiKey(e.target.value)} placeholder="请输入您的 API 密钥" className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-4 px-6 text-sm font-mono outline-none focus:border-pink-300 transition-all" />
                 <select value={model} onChange={e => setModel(e.target.value as AppModel)} className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl p-4 text-sm font-bold text-slate-600 outline-none">
-                  <option value={AppModel.PRO}>Gemini 3 Pro (4K/2K 专业版)</option>
+                  <option value={AppModel.PRO}>Gemini 3 Pro (4K 专业/2K 重塑)</option>
                   <option value={AppModel.FLASH}>Gemini 2.5 Flash (快速预览)</option>
                 </select>
                 <div className="grid grid-cols-5 gap-2">
@@ -218,29 +224,12 @@ const App: React.FC = () => {
             <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-pink-400 mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                工作流创作指南
+                工作流指南
               </h3>
               <ul className="space-y-4 text-[10px] font-bold text-slate-300 leading-relaxed">
-                <li className="flex gap-3">
-                  <span className="text-pink-400">01</span>
-                  <span>上传<b>肖像图</b>（定脸）与<b>构图图</b>（定形），AI 将自动反推视觉脚本。</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-400">02</span>
-                  <span>首轮生成将以 <b>4K 分辨率</b> 渲染整个分镜网格，保留极高细节。</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-400">03</span>
-                  <span>生成的网格会自动切片。点击分镜上的按钮启动 <b>2K 局部重塑</b>。</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-400">04</span>
-                  <span><b>并行处理：</b> 您可以连续点击多个重塑按钮，它们将同时运行，互不干扰。</span>
-                </li>
-                <li className="flex gap-3">
-                  <span className="text-pink-400">05</span>
-                  <span>完成后点击“一键导出”，自动批量打包下载所有已就绪的高清成品。</span>
-                </li>
+                <li className="flex gap-3"><span className="text-pink-400">01</span><span>AI 深度学习图2的<b>构图与景别</b>，确保成图景别完全一致。</span></li>
+                <li className="flex gap-3"><span className="text-pink-400">02</span><span>首轮生成 <b>4K 网格</b>，支持点击单张分镜进入<b>放大预览</b>。</span></li>
+                <li className="flex gap-3"><span className="text-pink-400">03</span><span>点击“2K 高清重塑”进行单张增强。重塑后的单张将<b>严禁生成多图</b>。</span></li>
               </ul>
             </div>
           </div>
@@ -257,10 +246,13 @@ const App: React.FC = () => {
               {history.map(item => (
                 <div key={item.id} className="space-y-16 animate-in fade-in slide-in-from-bottom-8">
                   <div className="bg-white border-[8px] border-white rounded-[4.5rem] overflow-hidden shadow-2xl flex flex-col xl:flex-row">
-                    <div className="xl:w-[480px] shrink-0 bg-slate-50 flex items-center justify-center relative">
+                    <div className="xl:w-[480px] shrink-0 bg-slate-50 flex items-center justify-center relative group">
                       <img src={item.fullImage} className="w-full h-full object-contain cursor-zoom-in" onClick={() => setPreviewImage(item.fullImage)} />
+                      <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center pointer-events-none">
+                         <div className="bg-white/20 backdrop-blur-md px-6 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest border border-white/30">点击放大总网格</div>
+                      </div>
                       <div className="absolute top-8 left-8 px-4 py-2 bg-white/80 backdrop-blur-md rounded-2xl text-[9px] font-black text-slate-500 uppercase tracking-widest border border-white">
-                        4K 原始采样总表
+                        4K 原始网格采样
                       </div>
                     </div>
                     <div className="flex-1 p-12 flex flex-col justify-between bg-white">
@@ -276,11 +268,11 @@ const App: React.FC = () => {
                             className="px-6 py-3 bg-pink-50 text-pink-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-pink-400 hover:text-white transition-all flex items-center gap-2"
                            >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            一键打包已就绪成品 (HD)
+                            导出全部已重塑高清图
                            </button>
                         </div>
                         <div className="p-8 bg-slate-50 rounded-[2.5rem] text-[10px] text-slate-400 font-bold leading-relaxed border border-slate-100 max-h-[200px] overflow-y-auto">
-                          <p className="mb-4 text-slate-500 border-b pb-2">视觉脚本分析预览：</p>
+                          <p className="mb-4 text-slate-500 border-b pb-2 font-black uppercase tracking-widest">分镜描述及景别规划：</p>
                           {(() => {
                             try {
                               const shots = JSON.parse(item.prompt);
@@ -294,10 +286,10 @@ const App: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-10">
-                        <button onClick={() => downloadImage(item.fullImage, '4K_Master_Grid')} className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">下载 4K 总分镜网格</button>
+                        <button onClick={() => downloadImage(item.fullImage, '4K_Master_Grid')} className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] text-[10px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">下载 4K 总表</button>
                         <div className="text-right">
-                          <span className="block text-[10px] font-black text-pink-300 uppercase">重塑就绪进度</span>
-                          <span className="text-sm font-bold text-slate-800">{item.upscaledIndices.length} / {item.slices.length} 已转 2K HD</span>
+                          <span className="block text-[10px] font-black text-pink-300 uppercase">2K HD 转换进度</span>
+                          <span className="text-sm font-bold text-slate-800">{item.upscaledIndices.length} / {item.slices.length} 已完成</span>
                         </div>
                       </div>
                     </div>
@@ -317,7 +309,11 @@ const App: React.FC = () => {
                           )}
 
                           <div className="absolute inset-0 bg-slate-900/70 opacity-0 group-hover:opacity-100 transition-all flex flex-col items-center justify-center p-10 gap-4 backdrop-blur-sm">
-                            <button onClick={() => downloadImage(slice, `分镜_${i+1}`)} className="w-full py-4 bg-white text-slate-900 text-[10px] font-black rounded-2xl uppercase tracking-widest hover:bg-pink-400 hover:text-white transition-all">保存此分镜</button>
+                            <button onClick={() => setPreviewImage(slice)} className="w-full py-4 bg-white text-slate-900 text-[10px] font-black rounded-2xl uppercase tracking-widest hover:bg-pink-100 transition-all flex items-center justify-center gap-2">
+                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>
+                               全屏放大预览
+                            </button>
+                            <button onClick={() => downloadImage(slice, `分镜_${i+1}`)} className="w-full py-4 bg-slate-100 text-slate-900 text-[10px] font-black rounded-2xl uppercase tracking-widest hover:bg-white transition-all">保存此分镜</button>
                             <button 
                               onClick={() => manualUpscale(item.id, i)} 
                               disabled={item.loadingIndices.includes(i)}
@@ -325,15 +321,15 @@ const App: React.FC = () => {
                                 item.upscaledIndices.includes(i) ? 'bg-emerald-500 text-white' : 'bg-pink-500 text-white hover:bg-pink-600'
                               }`}
                             >
-                              {item.upscaledIndices.includes(i) ? "再次启动 2K HD 重塑" : "启动 2K 高清重塑"}
+                              {item.upscaledIndices.includes(i) ? "重新高清重塑" : "启动 2K HD 重塑"}
                             </button>
                           </div>
 
                           <div className="absolute top-8 left-8">
                             {item.upscaledIndices.includes(i) ? (
-                              <div className="bg-emerald-500 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white">2K HD 成品就绪</div>
+                              <div className="bg-emerald-500 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white">2K HD 成品</div>
                             ) : item.loadingIndices.includes(i) ? (
-                              <div className="bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white animate-pulse">正在重构像素</div>
+                              <div className="bg-amber-400 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white animate-pulse">正在重构</div>
                             ) : (
                               <div className="bg-slate-400 text-white text-[9px] font-black px-4 py-1.5 rounded-full shadow-lg border-2 border-white">4K 原始采样</div>
                             )}
