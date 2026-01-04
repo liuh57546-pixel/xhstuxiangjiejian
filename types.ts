@@ -17,6 +17,7 @@ export interface GenerationResult {
   fullImage: string;
   slices: string[];
   upscaledIndices: number[];
+  loadingIndices: number[]; // 新增：记录正在重塑中的切片下标
   prompt: string;
   gridType: 'single' | '4-grid' | '9-grid';
   selectedRatio: string;
@@ -25,7 +26,7 @@ export interface GenerationResult {
 export interface PromptAnalysis {
   subject: string;
   appearance: string;
-  physique: string; // 新增：身材与比例描述
+  physique: string;
   action: string;
   composition: string;
   background: string;
