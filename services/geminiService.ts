@@ -21,10 +21,16 @@ const compressImage = async (base64: string, maxMB = 1): Promise<string> => {
 export const analyzePrompt = async (
   characterImage: string,
   referenceImage: string,
-  apiKey: string
+  apiKey: string,
+  useReferenceStyle: boolean = true
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
+  // 根据用户选择动态调整风格指令
+  const styleInstruction = useReferenceStyle
+    ? `3. 审美转译 (开启滤镜借鉴): 必须完美复刻图2的【滤镜风格】、【色调 (Color Grading)】、【灯光氛围】。如果是复古胶片、暖光或冷调，必须完全一致。`
+    : `3. 风格重置 (关闭滤镜借鉴): 【严禁】模仿图2的滤镜、色调或特殊光影。仅提取图2的【动作】和【构图】。光影和风格请强制使用“顶级商业摄影、通透自然光、高保真画质 (Clean High-End Commercial Photography)”。`;
+
   const prompt = `你是一位世界顶级的时尚摄影导演、解剖学视觉专家和构图大师。
   
   请分析上传的两张图，为 Gemini 3 Pro 编写一份【极高保真度】的视觉脚本。
@@ -32,7 +38,8 @@ export const analyzePrompt = async (
   【任务核心】：
   1. 布局精准化: 识别图2是 Single, 2x2, 还是 3x3。
   2. 人像 DNA 锁定: 深度提取图1人物的面部几何、神态、发丝细节。
-  3. 解剖学与审美结合: 
+  ${styleInstruction}
+  4. 解剖学与审美结合: 
      - 必须分析图2每个格子的【景别】（如：低角度仰拍全景、高角度俯拍特写）。
      - 必须分析每个格子的【肢体状态】：特别是手指的摆放、脚尖的方向、关节的折叠角度。
      - 描述应包含：手部动作细节（如：指尖轻触下巴、手掌自然舒展）、腿部线条走向。
@@ -47,8 +54,8 @@ export const analyzePrompt = async (
     "subject": "极其详细的人脸特征描述",
     "appearance": "服装材质（如刺绣、亮片、丝绸）与颜色细节",
     "physique": "身材比例与优雅姿态描述",
-    "background": "环境背景细节与光影分布",
-    "style": "整体艺术风格与画质级别",
+    "background": "${useReferenceStyle ? '提取自图2的环境与光影' : '通透、干净、高极感的背景，配合人物动作，无特殊滤镜'}",
+    "style": "${useReferenceStyle ? '提取自图2的整体艺术风格' : 'High-end commercial photography, natural lighting, crystal clear 8K'}",
     "gridType": "single 或 4-grid 或 9-grid",
     "shots": ["对应网格数量的、包含景别/构图/肢体细节的长描述..."]
   }`;

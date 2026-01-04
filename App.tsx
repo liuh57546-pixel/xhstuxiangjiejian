@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const [characterImg, setCharacterImg] = useState<string | null>(null);
   const [referenceImg, setReferenceImg] = useState<string | null>(null);
   const [selectedRatio, setSelectedRatio] = useState('1:1');
+  const [useReferenceStyle, setUseReferenceStyle] = useState(true); // 新增：是否借鉴滤镜氛围
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [history, setHistory] = useState<GenerationResult[]>([]);
@@ -67,7 +68,8 @@ const App: React.FC = () => {
     try {
       setIsGenerating(true);
       setStatus('深度视觉分析中 (Pro)...');
-      const analysis = await analyzePrompt(characterImg, referenceImg, manualApiKey);
+      // 传递 useReferenceStyle 参数
+      const analysis = await analyzePrompt(characterImg, referenceImg, manualApiKey, useReferenceStyle);
       
       setStatus(`渲染 ${analysis.gridType === 'single' ? '单图' : analysis.gridType === '4-grid' ? '四宫格' : '九宫格'}...`);
       const url = await generateImage(model, analysis, manualApiKey, characterImg, selectedRatio);
@@ -169,6 +171,34 @@ const App: React.FC = () => {
                     <button key={r.id} onClick={() => setSelectedRatio(r.id)} className={`py-2 rounded-xl text-[10px] font-black border-2 transition-all ${selectedRatio === r.id ? 'bg-pink-400 border-pink-400 text-white shadow-lg shadow-pink-200' : 'bg-white border-slate-100 text-slate-400 hover:border-pink-100'}`}>{r.label}</button>
                   ))}
                 </div>
+
+                {/* 借鉴参考图滤镜氛围的开关 */}
+                <div 
+                  onClick={() => setUseReferenceStyle(!useReferenceStyle)}
+                  className={`w-full p-4 rounded-2xl flex items-center justify-between cursor-pointer border-2 transition-all select-none ${
+                    useReferenceStyle 
+                      ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' 
+                      : 'bg-white border-slate-100 hover:border-pink-200'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${useReferenceStyle ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                    </div>
+                    <div>
+                      <span className={`block text-[11px] font-black uppercase tracking-wider ${useReferenceStyle ? 'text-white' : 'text-slate-700'}`}>
+                        Copy Atmosphere
+                      </span>
+                      <span className={`block text-[9px] font-bold ${useReferenceStyle ? 'text-slate-400' : 'text-slate-300'}`}>
+                        借鉴参考图滤镜和氛围
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useReferenceStyle ? 'bg-pink-400' : 'bg-slate-200'}`}>
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform ${useReferenceStyle ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </div>
+                </div>
+
               </div>
 
               <div className="grid grid-cols-2 gap-4">
