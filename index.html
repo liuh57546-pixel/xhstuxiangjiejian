@@ -4,20 +4,34 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gemini Image Grid Master</title>
+  <title>2K 视觉工坊 - Gemini Image Grid Master</title>
   <script src="https://cdn.tailwindcss.com"></script>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
+    "react": "https://esm.sh/react@19.0.0",
+    "react-dom": "https://esm.sh/react-dom@19.0.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
+    "@google/genai": "https://esm.sh/@google/genai@1.34.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+    "react/": "https://esm.sh/react@^19.2.3/"
   }
 }
 </script>
+<style>
+  /* 防止加载前闪烁黑屏，设置与应用一致的底色 */
+  body {
+    background-color: #FFFBF9;
+    margin: 0;
+  }
+  #root {
+    min-height: 100vh;
+  }
+</style>
 </head>
-<body class="bg-slate-900 text-white min-h-screen">
+<body>
   <div id="root"></div>
+  <!-- 必须显式引入入口文件，且类型为 module -->
+  <script type="module" src="/index.tsx"></script>
 </body>
 </html>
