@@ -18,7 +18,8 @@ const App: React.FC = () => {
   const [characterImg, setCharacterImg] = useState<string | null>(null);
   const [referenceImg, setReferenceImg] = useState<string | null>(null);
   const [selectedRatio, setSelectedRatio] = useState('1:1');
-  const [useReferenceStyle, setUseReferenceStyle] = useState(true); // 新增：是否借鉴滤镜氛围
+  const [useReferenceStyle, setUseReferenceStyle] = useState(true); 
+  const [useReferenceHair, setUseReferenceHair] = useState(false); // 新增：是否复刻参考图发型
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
   const [history, setHistory] = useState<GenerationResult[]>([]);
@@ -68,8 +69,9 @@ const App: React.FC = () => {
     try {
       setIsGenerating(true);
       setStatus('深度视觉分析中 (Pro)...');
-      // 传递 useReferenceStyle 参数
-      const analysis = await analyzePrompt(characterImg, referenceImg, manualApiKey, useReferenceStyle);
+      
+      // 传递 useReferenceStyle 和 useReferenceHair
+      const analysis = await analyzePrompt(characterImg, referenceImg, manualApiKey, useReferenceStyle, useReferenceHair);
       
       setStatus(`渲染 ${analysis.gridType === 'single' ? '单图' : analysis.gridType === '4-grid' ? '四宫格' : '九宫格'}...`);
       const url = await generateImage(model, analysis, manualApiKey, characterImg, selectedRatio);
@@ -96,7 +98,6 @@ const App: React.FC = () => {
       for (let i = 0; i < initialSlices.length; i++) {
         setStatus(`全自动 2K 极致重塑 (${i + 1}/${initialSlices.length})...`);
         try {
-          // 这里的 prompt 已经是通过 Pro 模型高度优化过的了
           const up = await upscaleImage(initialSlices[i], newEntry.prompt, manualApiKey, selectedRatio);
           finalSlices[i] = up;
           finalIndices.push(i);
@@ -152,7 +153,7 @@ const App: React.FC = () => {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           <div className="w-full lg:w-[400px] lg:sticky lg:top-8 shrink-0">
-            <div className="bg-white border-[6px] border-pink-50 rounded-[3.5rem] p-8 shadow-2xl shadow-pink-100/20 space-y-8">
+            <div className="bg-white border-[6px] border-pink-50 rounded-[3.5rem] p-8 shadow-2xl shadow-pink-100/20 space-y-6">
               <div className="space-y-4">
                 <div className="relative group">
                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
@@ -172,30 +173,60 @@ const App: React.FC = () => {
                   ))}
                 </div>
 
-                {/* 借鉴参考图滤镜氛围的开关 */}
-                <div 
-                  onClick={() => setUseReferenceStyle(!useReferenceStyle)}
-                  className={`w-full p-4 rounded-2xl flex items-center justify-between cursor-pointer border-2 transition-all select-none ${
-                    useReferenceStyle 
-                      ? 'bg-slate-900 border-slate-900 shadow-xl shadow-slate-200' 
-                      : 'bg-white border-slate-100 hover:border-pink-200'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${useReferenceStyle ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                {/* 选项组 */}
+                <div className="space-y-3 pt-2">
+                  {/* 氛围借鉴开关 */}
+                  <div 
+                    onClick={() => setUseReferenceStyle(!useReferenceStyle)}
+                    className={`w-full p-3 rounded-2xl flex items-center justify-between cursor-pointer border-2 transition-all select-none ${
+                      useReferenceStyle 
+                        ? 'bg-slate-900 border-slate-900 shadow-lg shadow-slate-200' 
+                        : 'bg-white border-slate-100 hover:border-pink-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${useReferenceStyle ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"/></svg>
+                      </div>
+                      <div>
+                        <span className={`block text-[10px] font-black uppercase tracking-wider ${useReferenceStyle ? 'text-white' : 'text-slate-700'}`}>
+                          Copy Atmosphere
+                        </span>
+                        <span className={`block text-[9px] font-bold ${useReferenceStyle ? 'text-slate-400' : 'text-slate-300'}`}>
+                          借鉴参考图柔光/滤镜
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <span className={`block text-[11px] font-black uppercase tracking-wider ${useReferenceStyle ? 'text-white' : 'text-slate-700'}`}>
-                        Copy Atmosphere
-                      </span>
-                      <span className={`block text-[9px] font-bold ${useReferenceStyle ? 'text-slate-400' : 'text-slate-300'}`}>
-                        借鉴参考图滤镜和氛围
-                      </span>
+                    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useReferenceStyle ? 'bg-pink-400' : 'bg-slate-200'}`}>
+                      <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform ${useReferenceStyle ? 'translate-x-4' : 'translate-x-0'}`} />
                     </div>
                   </div>
-                  <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useReferenceStyle ? 'bg-pink-400' : 'bg-slate-200'}`}>
-                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transition-transform ${useReferenceStyle ? 'translate-x-4' : 'translate-x-0'}`} />
+
+                  {/* 发型复刻开关 - 新增 */}
+                  <div 
+                    onClick={() => setUseReferenceHair(!useReferenceHair)}
+                    className={`w-full p-3 rounded-2xl flex items-center justify-between cursor-pointer border-2 transition-all select-none ${
+                      useReferenceHair 
+                        ? 'bg-purple-600 border-purple-600 shadow-lg shadow-purple-200' 
+                        : 'bg-white border-slate-100 hover:border-purple-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${useReferenceHair ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                      </div>
+                      <div>
+                        <span className={`block text-[10px] font-black uppercase tracking-wider ${useReferenceHair ? 'text-white' : 'text-slate-700'}`}>
+                          Copy Hairstyle
+                        </span>
+                        <span className={`block text-[9px] font-bold ${useReferenceHair ? 'text-purple-200' : 'text-slate-300'}`}>
+                          强制复刻参考图发型
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${useReferenceHair ? 'bg-white' : 'bg-slate-200'}`}>
+                      <div className={`w-4 h-4 rounded-full shadow-md transition-transform ${useReferenceHair ? 'translate-x-4 bg-purple-600' : 'translate-x-0 bg-white'}`} />
+                    </div>
                   </div>
                 </div>
 
