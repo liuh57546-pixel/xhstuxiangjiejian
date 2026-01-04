@@ -70,7 +70,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({ label, onUpload, c
       
       {preview && (
         <div className="absolute inset-0 bg-pink-400/60 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <p className="text-white text-[10px] font-black uppercase tracking-[0.2em] scale-110">更换图片 ✨</p>
+          <p className="text-white text-[10px] font-black uppercase tracking-[0.2em] scale-110">点击更换图片 ✨</p>
         </div>
       )}
     </div>

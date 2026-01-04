@@ -23,34 +23,41 @@ export const analyzePrompt = async (
   referenceImage: string,
   apiKey: string,
   useReferenceStyle: boolean = true,
-  useReferenceHair: boolean = false
+  useReferenceHair: boolean = false,
+  useReferenceExpression: boolean = true // 新增：是否复刻参考图表情
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
   const styleInstruction = useReferenceStyle
-    ? `3. ATMOSPHERE CLONING: Replicate the lighting from Image 2 (e.g., Soft Focus, Bokeh, Warm Glow). Avoid harsh shadows.`
+    ? `3. ATMOSPHERE CLONING: Replicate the lighting from Image 2 (e.g., Soft Focus, Bokeh, Warm Glow).`
     : `3. ATMOSPHERE: High-end commercial studio lighting.`;
 
   const hairInstruction = useReferenceHair
-    ? `4. HAIR OVERRIDE: Ignore Image 1's hair. Replicate Image 2's hair style and color exactly (e.g., wavy blonde).`
-    : `4. HAIR PRESERVATION: Keep hair from Image 1.`;
+    ? `4. HAIR OVERRIDE: Ignore Image 1's hair. Replicate Image 2's hair style and color exactly.`
+    : `4. HAIR PRESERVATION: Keep hair DNA from Image 1.`;
+
+  // 表情逻辑指令
+  const expressionInstruction = useReferenceExpression
+    ? `5. EXPRESSION CLONING: Analyze the micro-expressions in Image 2. Describe the eye contact, mouth curvature, and emotional vibe. Replicate this exact mood in the script.`
+    : `5. POSITIVE EXPRESSION ENGINE: Do NOT follow Image 2's expression. Instead, generate a variety of natural positive emotions for the shots, such as: 'Gentle Serene Smile', 'Playful Glance', 'Elegant Joy', 'Soft Dreamy Look'. Ensure all expressions are attractive and positive.`;
 
   const prompt = `Analyze images to create a visual script for Gemini 3 Pro.
   Task: Extract face from Image 1, layout and style from Image 2.
   ${styleInstruction}
   ${hairInstruction}
-  5. DETAILED OUTFIT: Describe fabrics (velvet, lace), decorations (ribbons, bows). Do not simplify.
-  6. ANATOMY & POSING: Describe micro-movements (relaxed fingers, elegant lean). NO FISTS.
+  ${expressionInstruction}
+  6. DETAILED OUTFIT: Describe fabrics (velvet, lace), decorations (ribbons, bows).
+  7. ANATOMY: RELAXED ELEGANT HANDS, NO FISTS.
   
   Return JSON:
   {
-    "subject": "string",
+    "subject": "Detailed model description including facial features and expression plan",
     "appearance": "string",
     "physique": "string",
     "background": "string",
     "style": "string",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["FRAME 1: description", "..."]
+    "shots": ["FRAME 1: [Angle] + [Specific Expression] + [Action]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -98,11 +105,8 @@ export const generateImage = async (
                    analysis.gridType === '4-grid' ? '2x2 GRID MATRIX' : 
                    'SINGLE FRAME';
 
-  // 关键改动：网格模式下使用 4K 分辨率
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
-
-  const shotsContent = analysis.shots?.join('\n\n') || '';
 
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
@@ -111,7 +115,7 @@ export const generateImage = async (
     OUTFIT: ${analysis.appearance}
     RULES: RELAXED ELEGANT HANDS, NO FISTS. FACE FIDELITY TO IMAGE 1.
     SCRIPT:
-    ${shotsContent}
+    ${analysis.shots?.join('\n\n') || ''}
   `;
 
   const response = await ai.models.generateContent({
@@ -125,7 +129,7 @@ export const generateImage = async (
     config: {
       imageConfig: {
         aspectRatio: aspectRatio as any,
-        imageSize: targetSize as any // 初始生成使用 4K (如果是网格)
+        imageSize: targetSize as any
       }
     }
   });
@@ -134,7 +138,7 @@ export const generateImage = async (
   for (const part of parts) {
     if (part.inlineData) return `data:image/png;base64,${part.inlineData.data}`;
   }
-  throw new Error("4K 原图生成失败。");
+  throw new Error("图像生成失败。");
 };
 
 export const upscaleImage = async (
@@ -151,7 +155,7 @@ export const upscaleImage = async (
       parts: [
         { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } },
         { text: `TASK: 2K HIGH-FIDELITY UPSCALING.
-        FOCUS: Soften lighting, fix fingers to be elegant/distinct, maintain ${aspectRatio} aspect ratio.
+        FOCUS: Soften lighting, fix fingers, sharpen eyes while keeping expression emotion.
         DESCRIPTION: ${description.substring(0, 500)}` }
       ]
     },
