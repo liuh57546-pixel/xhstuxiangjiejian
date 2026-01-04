@@ -24,7 +24,7 @@ export const analyzePrompt = async (
   apiKey: string,
   useReferenceStyle: boolean = true,
   useReferenceHair: boolean = false,
-  useReferenceExpression: boolean = true // 新增：是否复刻参考图表情
+  useReferenceExpression: boolean = true
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
@@ -36,7 +36,6 @@ export const analyzePrompt = async (
     ? `4. HAIR OVERRIDE: Ignore Image 1's hair. Replicate Image 2's hair style and color exactly.`
     : `4. HAIR PRESERVATION: Keep hair DNA from Image 1.`;
 
-  // 表情逻辑指令
   const expressionInstruction = useReferenceExpression
     ? `5. EXPRESSION CLONING: Analyze the micro-expressions in Image 2. Describe the eye contact, mouth curvature, and emotional vibe. Replicate this exact mood in the script.`
     : `5. POSITIVE EXPRESSION ENGINE: Do NOT follow Image 2's expression. Instead, generate a variety of natural positive emotions for the shots, such as: 'Gentle Serene Smile', 'Playful Glance', 'Elegant Joy', 'Soft Dreamy Look'. Ensure all expressions are attractive and positive.`;
@@ -51,13 +50,13 @@ export const analyzePrompt = async (
   
   Return JSON:
   {
-    "subject": "Detailed model description including facial features and expression plan",
+    "subject": "Detailed model description",
     "appearance": "string",
     "physique": "string",
     "background": "string",
     "style": "string",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["FRAME 1: [Angle] + [Specific Expression] + [Action]", "..."]
+    "shots": ["FRAME 1: [Detailed Angle/Expression/Action Description]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -149,14 +148,21 @@ export const upscaleImage = async (
 ): Promise<string> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
+  // 核心修复：极致严厉的单图指令
   const response = await ai.models.generateContent({
     model: AppModel.PRO,
     contents: {
       parts: [
         { inlineData: { data: base64Image.split(',')[1], mimeType: 'image/png' } },
-        { text: `TASK: 2K HIGH-FIDELITY UPSCALING.
-        FOCUS: Soften lighting, fix fingers, sharpen eyes while keeping expression emotion.
-        DESCRIPTION: ${description.substring(0, 500)}` }
+        { text: `TASK: 2K HIGH-FIDELITY UPSCALING OF A SINGLE IMAGE.
+        STRICT RULES:
+        1. DO NOT CREATE A GRID, MATRIX, OR MULTIPLE PANELS.
+        2. OUTPUT EXACTLY ONE (1) FULL-FRAME CHARACTER PORTRAIT.
+        3. REMOVE ANY BORDERS OR DIVIDERS.
+        4. FOCUS ONLY ON ENHANCING THE EXISTING SINGLE SUBJECT.
+        
+        DESCRIPTION OF THE SUBJECT:
+        ${description.substring(0, 500)}` }
       ]
     },
     config: {

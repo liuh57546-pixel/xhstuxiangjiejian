@@ -105,7 +105,8 @@ const App: React.FC = () => {
         slices: initialSlices,
         upscaledIndices: [],
         loadingIndices: [],
-        prompt: analysis.shots?.join('\n') || '',
+        // 核心修改：我们将 analysis.shots 直接存为数组，方便后续按索引提取
+        prompt: analysis.shots ? JSON.stringify(analysis.shots) : '', 
         gridType: analysis.gridType,
         selectedRatio: selectedRatio
       };
@@ -130,7 +131,17 @@ const App: React.FC = () => {
     } : h));
 
     try {
-      const up = await upscaleImage(item.slices[idx], item.prompt, manualApiKey, item.selectedRatio);
+      // 核心修改：仅提取当前分镜的描述，并加入“单人像”前缀
+      let currentShotDesc = "Single character portrait with high detail.";
+      try {
+        const shots = JSON.parse(item.prompt);
+        if (Array.isArray(shots) && shots[idx]) {
+          currentShotDesc = `SINGLE PORTRAIT: ${shots[idx]}`;
+        }
+      } catch(e) {}
+
+      const up = await upscaleImage(item.slices[idx], currentShotDesc, manualApiKey, item.selectedRatio);
+      
       setHistory(prev => prev.map(h => h.id === id ? { 
         ...h, 
         slices: h.slices.map((s, i) => i === idx ? up : s),
@@ -204,7 +215,6 @@ const App: React.FC = () => {
               </button>
             </div>
 
-            {/* 新增：创作指南板块 */}
             <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white shadow-2xl">
               <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-pink-400 mb-4 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
@@ -271,7 +281,16 @@ const App: React.FC = () => {
                         </div>
                         <div className="p-8 bg-slate-50 rounded-[2.5rem] text-[10px] text-slate-400 font-bold leading-relaxed border border-slate-100 max-h-[200px] overflow-y-auto">
                           <p className="mb-4 text-slate-500 border-b pb-2">视觉脚本分析预览：</p>
-                          {item.prompt.split('\n').map((line, i) => <div key={i} className="mb-2 pl-4 border-l-2 border-pink-100">{line}</div>)}
+                          {(() => {
+                            try {
+                              const shots = JSON.parse(item.prompt);
+                              return Array.isArray(shots) ? shots.map((line: string, i: number) => (
+                                <div key={i} className="mb-2 pl-4 border-l-2 border-pink-100">{line}</div>
+                              )) : null;
+                            } catch(e) {
+                              return <div className="pl-4 border-l-2 border-pink-100">{item.prompt}</div>;
+                            }
+                          })()}
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-10">
