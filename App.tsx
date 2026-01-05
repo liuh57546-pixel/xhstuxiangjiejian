@@ -132,10 +132,14 @@ const App: React.FC = () => {
     try {
       let currentShotDesc = "Focus on a single subject, full body or portrait as visible.";
       try {
-        const shots = JSON.parse(item.prompt);
-        if (Array.isArray(shots) && shots[idx]) {
-          // 精简指令，去掉任何暗示“网格”或“分镜表”的内容，仅保留对单图的描述
-          currentShotDesc = `ONE SINGLE IMAGE: ${shots[idx]}. Absolutely no grids or splits. Enhance existing single frame content.`;
+        if (item.prompt && item.prompt.trim().startsWith('[')) {
+           const shots = JSON.parse(item.prompt);
+           if (Array.isArray(shots) && shots[idx]) {
+             currentShotDesc = `ONE SINGLE IMAGE: ${shots[idx]}. Absolutely no grids or splits. Enhance existing single frame content.`;
+           }
+        } else {
+           // Fallback if prompt is not JSON array
+           currentShotDesc = item.prompt;
         }
       } catch(e) {}
 
@@ -242,6 +246,17 @@ const App: React.FC = () => {
               </div>
             )}
 
+            {/* 新增：空状态占位符，防止右侧消失 */}
+            {!isGenerating && history.length === 0 && (
+              <div className="h-full min-h-[500px] border-[6px] border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-12 text-center group hover:border-pink-200 transition-colors cursor-default select-none">
+                <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6 text-slate-300 group-hover:bg-pink-50 group-hover:text-pink-400 transition-all duration-500">
+                  <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <h3 className="text-xl font-black text-slate-300 uppercase tracking-widest group-hover:text-pink-400 transition-colors">创作画布已就绪</h3>
+                <p className="text-slate-300 font-bold text-xs mt-3 group-hover:text-pink-300 transition-colors">请在左侧上传图片并点击启动，AI 视觉作品将在此呈现</p>
+              </div>
+            )}
+
             <div className="space-y-24">
               {history.map(item => (
                 <div key={item.id} className="space-y-16 animate-in fade-in slide-in-from-bottom-8">
@@ -275,10 +290,11 @@ const App: React.FC = () => {
                           <p className="mb-4 text-slate-500 border-b pb-2 font-black uppercase tracking-widest">分镜描述及景别规划：</p>
                           {(() => {
                             try {
+                              if (!item.prompt || !item.prompt.trim().startsWith('[')) throw new Error();
                               const shots = JSON.parse(item.prompt);
                               return Array.isArray(shots) ? shots.map((line: string, i: number) => (
                                 <div key={i} className="mb-2 pl-4 border-l-2 border-pink-100">{line}</div>
-                              )) : null;
+                              )) : <div className="pl-4 border-l-2 border-pink-100">{item.prompt}</div>;
                             } catch(e) {
                               return <div className="pl-4 border-l-2 border-pink-100">{item.prompt}</div>;
                             }
