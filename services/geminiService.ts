@@ -50,12 +50,13 @@ export const analyzePrompt = async (
   ${hairInstruction}
   ${expressionInstruction}
   6. 服饰细节：描述织物（天鹅绒、蕾丝）、装饰物。
-  7. 肢体：放松优雅的手部，严禁握拳。
+  7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色（如：白色运动鞋、黑色高跟鞋）；若图2中未出现鞋子，则**严禁捏造**任何鞋子描述。
+  8. 肢体：放松优雅的手部，严禁握拳。
   
   返回 JSON 格式：
   {
     "subject": "详细的角色描述",
-    "appearance": "服饰细节",
+    "appearance": "服饰细节（若参考图可见鞋子则包含鞋子描述，否则不包含）",
     "physique": "体态描述",
     "background": "背景环境",
     "style": "视觉风格",
