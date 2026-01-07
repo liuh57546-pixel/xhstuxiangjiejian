@@ -28,17 +28,15 @@ export const analyzePrompt = async (
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
-  // 深度风格与摄影语言反推指令
+  // 深度风格与摄影语言反推指令 (保留之前的升级)
   const styleInstruction = useReferenceStyle
     ? `3. 深度摄影美学与质感反推 (Crucial Style Extraction)：
        不要只描述"风格"，必须基于以下 5 个维度深度解构图2的视觉语言：
-       A. 摄影器材与介质 (Hardware): 是胶片(Kodak Portra/Gold, grainy)? 早期数码(CCD sensor)? 还是手机直出? 镜头是广角畸变还是长焦压缩?
-       B. 光线物理属性 (Lighting Physics): 寻找光线的"不完美"。是直射闪光灯(Direct flash)? 强硬阴影(Hard shadows)? 还是过曝高光(Blown-out highlights)? 严禁默认使用"柔光"。
-       C. 生理细节与真实感 (Imperfections): 描述皮肤纹理(Pores, texture)、面部出油(Oiliness)、散乱的发丝(Stray hairs, messy)、脱妆或真实感妆容。拒绝磨皮感。
-       D. 构图的随意性 (Casual Composition): 是否有动态模糊(Motion blur)? 失焦(Out of focus)? 荷兰角(Dutch angle)? 像偷拍或快照(Snapshot aesthetic)?
-       E. 氛围与环境叙事: 空气中的尘埃、脏窗户、杂乱背景(Cluttered background)或特定的情绪氛围。
-       
-       将以上提取的所有细节浓缩进 "style" 字段中。`
+       A. 摄影器材与介质: 胶片感(Grainy film)? 数码直出? 镜头畸变?
+       B. 光线物理属性: 寻找直射闪光灯(Direct flash)、硬光、过曝点。拒绝平庸柔光。
+       C. 生理细节与真实感: 皮肤纹理(Texture/Pores)、真实妆容瑕疵、发丝凌乱感。
+       D. 构图的随意性: 动态模糊、不完美构图、生活快照感。
+       E. 氛围与环境叙事: 空气感、环境杂物。`
     : `3. 大气：高品质商业摄影棚灯光，完美布光。`;
 
   const hairInstruction = useReferenceHair
@@ -47,10 +45,10 @@ export const analyzePrompt = async (
 
   const expressionInstruction = useReferenceExpression
     ? `5. 表情克隆：分析图2的微表情（眼神、嘴角弧度、情绪氛围），并将其转化到脚本中。`
-    : `5. 正面表情引擎：忽略图2表情，生成一系列自然亲和的正面情绪描述（如：恬静微笑、俏皮眼神、优雅喜悦、梦幻神情）。`;
+    : `5. 正面表情引擎：忽略图2表情，生成一系列自然亲和的正面情绪描述。`;
 
   const prompt = `分析图像为 Gemini 3 Pro 编写极具电影感或胶片感的视觉脚本。
-  任务：提取图1的人脸，提取图2的构图、景别和深度摄影风格。
+  任务：提取图1的人脸，提取图2的构图、景别、穿着细节和深度摄影风格。
   
   关键要求：
   1. 景别一致性：深度分析图2的每一帧是【全身】、【半身】还是【特写】，必须在脚本中明确指定景别（Shot Size）。
@@ -58,20 +56,30 @@ export const analyzePrompt = async (
   ${styleInstruction}
   ${hairInstruction}
   ${expressionInstruction}
-  6. 服饰细节：描述织物（天鹅绒、蕾丝）、装饰物。
-  7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色（如：白色运动鞋、黑色高跟鞋）；若图2中未出现鞋子，则**严禁捏造**任何鞋子描述。
+  
+  6. 穿搭与材质极致细节 (Crucial Fashion & Allure Details):
+     - 结构与穿法检测：深度观察图2的衣服是"怎么穿的"。
+       > 是否有【露肩】(off-shoulder / falling strap)? 
+       > 是否【敞开领口】(open collar / unbuttoned)? 
+       > 是否【宽松慵懒】(loose/oversized) 还是 【紧身包裹】(tight/bodycon)?
+       > 若参考图展现了"不好好穿衣"的慵懒感或露肩的诱惑感(Allure)，必须在描述中强调 "Off-shoulder styling", "Loose fitting", "Revealing neckline" 等关键词。
+     - 腿部与袜饰材质：必须精确区分图2是【光腿】(bare legs)、【棉袜】(socks) 还是【丝袜/连裤袜】(pantyhose/stockings)。
+       > 如果是丝袜，必须描述其质感（如 translucent black pantyhose, silky texture, sheer denier）。
+       > 严禁忽略丝袜或露肩细节。
+     
+  7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色；否则**严禁捏造**。
   8. 肢体：放松优雅的手部，严禁握拳。
   9. 黄金比例与长腿优化：若图2（参考图）展示了全身或包含腿部动作，请深度提取其“显腿长”的姿势逻辑（如脚背延伸、低视角拍摄、双腿交叉延伸等），并在体态（physique）描述中明确写入“修长美腿（Long legs with golden ratio）”及相应的姿态特征。
   
   返回 JSON 格式：
   {
     "subject": "详细的角色描述",
-    "appearance": "服饰细节（若参考图可见鞋子则包含鞋子描述，否则不包含）",
+    "appearance": "服饰细节（重点：包含露肩方式、领口状态、丝袜/棉袜材质）",
     "physique": "体态描述（包含长腿与姿态）",
     "background": "背景环境",
     "style": "包含摄影器材、光线物理、瑕疵质感、构图语言的详细风格描述",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["分镜 1: [景别] + [摄影角度/焦段] + [光线描述] + [动作] + [表情]", "..."]
+    "shots": ["分镜 1: [景别] + [摄影角度] + [光线] + [动作] + [穿着细节(露肩/丝袜)] + [表情]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -123,7 +131,7 @@ export const generateImage = async (
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
 
-  // 在生成阶段，强调摄影语言和质感，移除默认的 "soft lighting"
+  // 在生成阶段，强化对材质和穿搭细节的执行
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
     
@@ -131,7 +139,10 @@ export const generateImage = async (
     (Emphasize film grain, specific lens characteristics, lighting imperfections, and skin texture as described).
     
     CHARACTER DNA: ${analysis.subject}
-    OUTFIT: ${analysis.appearance}
+    
+    OUTFIT & TEXTURE DETAILS: ${analysis.appearance}
+    (CRITICAL ATTENTION: Ensure "Off-shoulder/Open collar" styling and "Stockings/Pantyhose" texture are visible if mentioned in the description).
+    
     PHYSIQUE: ${analysis.physique}
     BACKGROUND: ${analysis.background}
     
@@ -190,6 +201,9 @@ export const upscaleImage = async (
         
         PHOTOGRAPHY STYLE ENHANCEMENT:
         Retain the original film grain, lens distortion, and lighting atmosphere. Do not over-smooth the skin.
+        
+        CONTENT & TEXTURE RESTORATION:
+        Focus on fabric textures (sheer stockings, velvet, cotton) and skin details. Ensure clothing fit (off-shoulder, etc.) is maintained.
         
         CONTENT DESCRIPTION:
         ${description.substring(0, 500)}` }
