@@ -52,12 +52,13 @@ export const analyzePrompt = async (
   6. 服饰细节：描述织物（天鹅绒、蕾丝）、装饰物。
   7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色（如：白色运动鞋、黑色高跟鞋）；若图2中未出现鞋子，则**严禁捏造**任何鞋子描述。
   8. 肢体：放松优雅的手部，严禁握拳。
+  9. 黄金比例与长腿优化：若图2（参考图）展示了全身或包含腿部动作，请深度提取其“显腿长”的姿势逻辑（如脚背延伸、低视角拍摄、双腿交叉延伸等），并在体态（physique）描述中明确写入“修长美腿（Long legs with golden ratio）”及相应的姿态特征。
   
   返回 JSON 格式：
   {
     "subject": "详细的角色描述",
     "appearance": "服饰细节（若参考图可见鞋子则包含鞋子描述，否则不包含）",
-    "physique": "体态描述",
+    "physique": "体态描述（包含长腿与姿态）",
     "background": "背景环境",
     "style": "视觉风格",
     "gridType": "single | 4-grid | 9-grid",
@@ -118,6 +119,7 @@ export const generateImage = async (
     VISUAL STYLE: ${analysis.style}, soft lighting.
     CHARACTER DNA: ${analysis.subject}
     OUTFIT: ${analysis.appearance}
+    PHYSIQUE: ${analysis.physique}
     BACKGROUND: ${analysis.background}
     CRITICAL RULES: RELAXED ELEGANT HANDS. FACE MUST LOOK LIKE IMAGE 1. 
     ADHERE TO THE SPECIFIC SHOT SIZES (Full body, medium, close-up) IN THE SCRIPT.
