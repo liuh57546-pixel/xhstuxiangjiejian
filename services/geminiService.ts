@@ -28,7 +28,7 @@ export const analyzePrompt = async (
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
-  // 深度风格与摄影语言反推指令 (保留之前的升级)
+  // 深度风格与摄影语言反推指令 (保留核心摄影美学)
   const styleInstruction = useReferenceStyle
     ? `3. 深度摄影美学与质感反推 (Crucial Style Extraction)：
        不要只描述"风格"，必须基于以下 5 个维度深度解构图2的视觉语言：
@@ -57,29 +57,28 @@ export const analyzePrompt = async (
   ${hairInstruction}
   ${expressionInstruction}
   
-  6. 穿搭与材质极致细节 (Crucial Fashion & Allure Details):
-     - 结构与穿法检测：深度观察图2的衣服是"怎么穿的"。
-       > 是否有【露肩】(off-shoulder / falling strap)? 
-       > 是否【敞开领口】(open collar / unbuttoned)? 
-       > 是否【宽松慵懒】(loose/oversized) 还是 【紧身包裹】(tight/bodycon)?
-       > 若参考图展现了"不好好穿衣"的慵懒感或露肩的诱惑感(Allure)，必须在描述中强调 "Off-shoulder styling", "Loose fitting", "Revealing neckline" 等关键词。
-     - 腿部与袜饰材质：必须精确区分图2是【光腿】(bare legs)、【棉袜】(socks) 还是【丝袜/连裤袜】(pantyhose/stockings)。
-       > 如果是丝袜，必须描述其质感（如 translucent black pantyhose, silky texture, sheer denier）。
-       > 严禁忽略丝袜或露肩细节。
+  6. 极致服饰与材质物理分析 (High-Fidelity Fashion & Texture Analysis):
+     - 不要预设任何特定款式（如露肩或丝袜），而是**完全忠实于图2**的视觉信息，但描述必须极度细腻。
+     - **材质物理属性**：深度分析衣物是硬挺的（如丹宁、皮革）、柔软的（如棉麻）、还是流动的（如丝绸、薄纱）。描述光线如何在织物表面反射（哑光、丝光、高光）。
+     - **穿着状态**：观察衣褶的走向、布料的垂坠感、是否贴身或宽松。
+     - **透视与层次**：如果存在透明/半透明材质（如蕾丝、薄纱、丝袜），需精确描述其透光度和肤色透出的质感。
      
   7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色；否则**严禁捏造**。
   8. 肢体：放松优雅的手部，严禁握拳。
-  9. 黄金比例与长腿优化：若图2（参考图）展示了全身或包含腿部动作，请深度提取其“显腿长”的姿势逻辑（如脚背延伸、低视角拍摄、双腿交叉延伸等），并在体态（physique）描述中明确写入“修长美腿（Long legs with golden ratio）”及相应的姿态特征。
+  
+  9. 黄金比例与体态微调 (Pose Refinement & Golden Ratio):
+     - **核心原则：严格保持图2的原始姿势和动作，不要改变动作本身。**
+     - **美学优化**：在保持原动作的基础上，应用“黄金比例”美学视角进行微调。例如：如果图2有腿部展示，通过微调透视或延伸感，让肢体线条看起来更流畅、修长（Elongated visual lines），避免视觉上的压缩感，但绝不能把“坐姿”改成“站姿”，也不能强行改变腿部摆放位置。
   
   返回 JSON 格式：
   {
     "subject": "详细的角色描述",
-    "appearance": "服饰细节（重点：包含露肩方式、领口状态、丝袜/棉袜材质）",
-    "physique": "体态描述（包含长腿与姿态）",
+    "appearance": "服饰细节（重点：材质物理属性、光泽感、垂坠感）",
+    "physique": "体态描述（包含基于原动作的线条美化）",
     "background": "背景环境",
     "style": "包含摄影器材、光线物理、瑕疵质感、构图语言的详细风格描述",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["分镜 1: [景别] + [摄影角度] + [光线] + [动作] + [穿着细节(露肩/丝袜)] + [表情]", "..."]
+    "shots": ["分镜 1: [景别] + [摄影角度] + [光线] + [动作] + [穿着细节] + [表情]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -131,7 +130,7 @@ export const generateImage = async (
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
 
-  // 在生成阶段，强化对材质和穿搭细节的执行
+  // 在生成阶段，移除特定的诱惑性检查，转为强调反推得到的物理材质
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
     
@@ -140,8 +139,8 @@ export const generateImage = async (
     
     CHARACTER DNA: ${analysis.subject}
     
-    OUTFIT & TEXTURE DETAILS: ${analysis.appearance}
-    (CRITICAL ATTENTION: Ensure "Off-shoulder/Open collar" styling and "Stockings/Pantyhose" texture are visible if mentioned in the description).
+    OUTFIT & FABRIC PHYSICS: ${analysis.appearance}
+    (Render the exact fabric textures - silk, denim, leather, cotton - with realistic light interaction and drape as analyzed).
     
     PHYSIQUE: ${analysis.physique}
     BACKGROUND: ${analysis.background}
@@ -149,7 +148,7 @@ export const generateImage = async (
     CRITICAL RULES: 
     1. RELAXED ELEGANT HANDS. 
     2. FACE MUST LOOK LIKE IMAGE 1. 
-    3. ADHERE TO THE SPECIFIC SHOT SIZES (Full body, medium, close-up) IN THE SCRIPT.
+    3. STRICTLY ADHERE TO THE SHOT SIZES AND POSES IN THE SCRIPT.
     
     DETAILED SCRIPT:
     ${analysis.shots?.join('\n\n') || ''}
@@ -203,7 +202,7 @@ export const upscaleImage = async (
         Retain the original film grain, lens distortion, and lighting atmosphere. Do not over-smooth the skin.
         
         CONTENT & TEXTURE RESTORATION:
-        Focus on fabric textures (sheer stockings, velvet, cotton) and skin details. Ensure clothing fit (off-shoulder, etc.) is maintained.
+        Focus on hyper-realistic fabric textures and skin details. Maintain the original clothing fit and drape exactly as seen in the base image.
         
         CONTENT DESCRIPTION:
         ${description.substring(0, 500)}` }
