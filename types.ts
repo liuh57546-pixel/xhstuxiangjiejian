@@ -21,6 +21,7 @@ export interface GenerationResult {
   prompt: string;
   gridType: 'single' | '4-grid' | '9-grid';
   selectedRatio: string;
+  analysisData?: PromptAnalysis; // 新增：保存完整的脚本分析数据，用于回溯编辑
 }
 
 export interface PromptAnalysis {

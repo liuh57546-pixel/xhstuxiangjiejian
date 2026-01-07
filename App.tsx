@@ -137,7 +137,8 @@ const App: React.FC = () => {
         loadingIndices: [],
         prompt: analysisResult.shots ? JSON.stringify(analysisResult.shots) : '', 
         gridType: analysisResult.gridType,
-        selectedRatio: selectedRatio
+        selectedRatio: selectedRatio,
+        analysisData: analysisResult // 保存完整的分析数据以便重试
       };
       setHistory(prev => [newEntry, ...prev]);
     } catch (e: any) {
@@ -147,6 +148,20 @@ const App: React.FC = () => {
       setIsGenerating(false);
       setStatus('');
     }
+  };
+
+  // 新增：点击历史记录中的“调整脚本并重绘”
+  const handleRetry = (item: GenerationResult) => {
+    if (!item.analysisData) {
+      alert("该历史记录缺少详细脚本数据，无法重绘。");
+      return;
+    }
+    // 恢复数据
+    setAnalysisResult(item.analysisData);
+    // 打开编辑器
+    setShowScriptEditor(true);
+    // 滚动到顶部
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const manualUpscale = async (id: string, idx: number) => {
@@ -263,7 +278,7 @@ const App: React.FC = () => {
               <ul className="space-y-4 text-[10px] font-bold text-slate-300 leading-relaxed">
                 <li className="flex gap-3"><span className="text-pink-400">01</span><span>点击“分析”让 AI 提取参考图的摄影语言与景别。</span></li>
                 <li className="flex gap-3"><span className="text-pink-400">02</span><span>在<b>脚本编辑器</b>中微调分镜描述，确认后开始渲染。</span></li>
-                <li className="flex gap-3"><span className="text-pink-400">03</span><span>生成 4K 网格后，点击分镜进行 <b>2K 高清重塑</b>。</span></li>
+                <li className="flex gap-3"><span className="text-pink-400">03</span><span>对不满意的结果，可点击<b>“调整脚本并重绘”</b>回到步骤 02。</span></li>
               </ul>
             </div>
           </div>
@@ -288,7 +303,7 @@ const App: React.FC = () => {
                        onClick={() => setShowScriptEditor(false)}
                        className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest transition-colors"
                      >
-                       取消并重置
+                       取消
                      </button>
                    </div>
 
@@ -418,13 +433,25 @@ const App: React.FC = () => {
                               {item.gridType === '9-grid' ? '九宫格模式' : item.gridType === '4-grid' ? '四宫格模式' : '单张模式'}
                             </span>
                            </div>
-                           <button 
-                            onClick={() => batchDownloadSlices(item.id)}
-                            className="px-6 py-3 bg-pink-50 text-pink-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-pink-400 hover:text-white transition-all flex items-center gap-2"
-                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                            导出全部已重塑高清图
-                           </button>
+                           <div className="flex gap-3">
+                             {/* 重绘按钮 */}
+                             {item.analysisData && (
+                               <button 
+                                onClick={() => handleRetry(item)}
+                                className="px-5 py-3 border-2 border-slate-200 text-slate-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:border-pink-400 hover:text-pink-500 hover:bg-pink-50 transition-all flex items-center gap-2"
+                               >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                调整脚本并重绘
+                               </button>
+                             )}
+                             <button 
+                              onClick={() => batchDownloadSlices(item.id)}
+                              className="px-6 py-3 bg-pink-50 text-pink-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-pink-400 hover:text-white transition-all flex items-center gap-2"
+                             >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                              导出全部已重塑高清图
+                             </button>
+                           </div>
                         </div>
                         <div className="p-8 bg-slate-50 rounded-[2.5rem] text-[10px] text-slate-400 font-bold leading-relaxed border border-slate-100 max-h-[200px] overflow-y-auto">
                           <p className="mb-4 text-slate-500 border-b pb-2 font-black uppercase tracking-widest">最终执行的分镜描述：</p>
