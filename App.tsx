@@ -113,8 +113,6 @@ const App: React.FC = () => {
     }
   };
 
-  // 第二步：用户在弹窗中修改 analysisResult (通过 UI 直接修改 state)
-
   // 第三步：点击“执行生成”
   const handleExecuteGeneration = async () => {
     if (!analysisResult || !characterImg) return;
@@ -193,125 +191,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#FFFBF9] font-sans text-slate-800 pb-20">
-      {/* 视觉脚本编辑器模态框 */}
-      {showScriptEditor && analysisResult && (
-        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-4xl h-[90vh] rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 duration-500 border-4 border-slate-100">
-            {/* 顶部标题栏 */}
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between bg-white shrink-0">
-              <div>
-                <h2 className="text-2xl font-black text-slate-800 tracking-tight">AI 视觉导演脚本</h2>
-                <p className="text-[10px] font-bold text-pink-500 uppercase tracking-widest mt-1">请审查并微调反推结果，随后开始渲染</p>
-              </div>
-              <button onClick={() => setShowScriptEditor(false)} className="w-10 h-10 rounded-full bg-slate-50 hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-
-            {/* 滚动编辑区 */}
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50">
-              
-              {/* 核心风格区 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">摄影风格 & 光影 (Style & Light)</label>
-                  <textarea 
-                    value={analysisResult.style}
-                    onChange={(e) => setAnalysisResult({...analysisResult, style: e.target.value})}
-                    className="w-full h-32 p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:outline-none transition-all resize-none"
-                    placeholder="例如：Kodak Portra 400, grainy, hard flash..."
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">材质与服饰物理 (Fabric & Texture)</label>
-                  <textarea 
-                    value={analysisResult.appearance}
-                    onChange={(e) => setAnalysisResult({...analysisResult, appearance: e.target.value})}
-                    className="w-full h-32 p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:outline-none transition-all resize-none"
-                    placeholder="描述布料的物理属性，反光，垂坠感..."
-                  />
-                </div>
-              </div>
-
-              {/* 角色与体态 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">角色特征 (Character DNA)</label>
-                  <textarea 
-                    value={analysisResult.subject}
-                    onChange={(e) => setAnalysisResult({...analysisResult, subject: e.target.value})}
-                    className="w-full h-24 p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:outline-none transition-all resize-none"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">体态与动作 (Pose & Physique)</label>
-                  <textarea 
-                    value={analysisResult.physique}
-                    onChange={(e) => setAnalysisResult({...analysisResult, physique: e.target.value})}
-                    className="w-full h-24 p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:outline-none transition-all resize-none"
-                  />
-                </div>
-              </div>
-
-              {/* 场景 */}
-               <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">背景与氛围 (Background)</label>
-                  <input 
-                    type="text"
-                    value={analysisResult.background}
-                    onChange={(e) => setAnalysisResult({...analysisResult, background: e.target.value})}
-                    className="w-full p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:outline-none transition-all"
-                  />
-                </div>
-
-              {/* 分镜列表 (重点) */}
-              <div className="space-y-4 pt-4 border-t border-slate-200">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-pink-500 uppercase tracking-widest">分镜脚本详细设定 (Shot List)</label>
-                  <span className="text-[10px] font-bold text-slate-400 bg-slate-200 px-2 py-1 rounded-md">{analysisResult.gridType}</span>
-                </div>
-                <div className="grid grid-cols-1 gap-4">
-                  {analysisResult.shots?.map((shot, idx) => (
-                    <div key={idx} className="flex gap-4 items-start group">
-                      <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-black text-slate-500 shrink-0 mt-2 group-hover:bg-pink-400 group-hover:text-white transition-colors">
-                        {idx + 1}
-                      </div>
-                      <textarea
-                        value={shot}
-                        onChange={(e) => {
-                          const newShots = [...(analysisResult.shots || [])];
-                          newShots[idx] = e.target.value;
-                          setAnalysisResult({...analysisResult, shots: newShots});
-                        }}
-                        className="flex-1 min-h-[80px] p-4 bg-white border-2 border-slate-200 rounded-2xl text-xs text-slate-600 focus:border-pink-400 focus:outline-none transition-all resize-none leading-relaxed"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
-
-            {/* 底部按钮栏 */}
-            <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-end gap-4 shrink-0">
-               <button 
-                onClick={() => setShowScriptEditor(false)}
-                className="px-8 py-4 rounded-2xl font-bold text-xs text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-all uppercase tracking-wider"
-              >
-                取消
-              </button>
-              <button 
-                onClick={handleExecuteGeneration}
-                className="px-10 py-4 bg-pink-400 hover:bg-pink-500 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center gap-2"
-              >
-                <span>确认脚本并生成</span>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      
       {/* 全屏放大预览功能 */}
       {previewImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/95 backdrop-blur-3xl" onClick={() => setPreviewImage(null)}>
@@ -389,6 +269,117 @@ const App: React.FC = () => {
           </div>
 
           <div className="flex-1 min-h-[600px]">
+             {/* 内嵌式视觉脚本编辑器 (替代原 Modal) */}
+             {showScriptEditor && analysisResult && (
+               <div className="w-full bg-white rounded-[3.5rem] shadow-2xl border-[6px] border-white overflow-hidden animate-in fade-in slide-in-from-bottom-8 mb-16 relative">
+                 {/* 装饰性背景 */}
+                 <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-pink-400 to-purple-500" />
+                 
+                 <div className="p-10">
+                   <div className="flex justify-between items-start mb-10 border-b border-slate-100 pb-6">
+                     <div>
+                       <h2 className="text-3xl font-black text-slate-800 tracking-tight">AI 视觉导演脚本</h2>
+                       <p className="text-xs font-bold text-pink-500 uppercase tracking-widest mt-2 flex items-center gap-2">
+                         <span className="w-2 h-2 rounded-full bg-pink-500 animate-pulse" />
+                         请审查并微调反推结果，确认后点击生成
+                       </p>
+                     </div>
+                     <button 
+                       onClick={() => setShowScriptEditor(false)}
+                       className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-widest transition-colors"
+                     >
+                       取消并重置
+                     </button>
+                   </div>
+
+                   <div className="space-y-10">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">摄影风格与光影 (Photography Style)</label>
+                         <textarea 
+                           value={analysisResult.style}
+                           onChange={(e) => setAnalysisResult({...analysisResult, style: e.target.value})}
+                           className="w-full h-32 p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:bg-white focus:outline-none transition-all resize-none leading-relaxed"
+                         />
+                       </div>
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">材质与服饰物理 (Fabric Physics)</label>
+                         <textarea 
+                           value={analysisResult.appearance}
+                           onChange={(e) => setAnalysisResult({...analysisResult, appearance: e.target.value})}
+                           className="w-full h-32 p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:bg-white focus:outline-none transition-all resize-none leading-relaxed"
+                         />
+                       </div>
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">角色特征 (Character DNA)</label>
+                         <textarea 
+                           value={analysisResult.subject}
+                           onChange={(e) => setAnalysisResult({...analysisResult, subject: e.target.value})}
+                           className="w-full h-24 p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:bg-white focus:outline-none transition-all resize-none leading-relaxed"
+                         />
+                       </div>
+                       <div className="space-y-3">
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">体态与动作 (Pose & Physique)</label>
+                         <textarea 
+                           value={analysisResult.physique}
+                           onChange={(e) => setAnalysisResult({...analysisResult, physique: e.target.value})}
+                           className="w-full h-24 p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:bg-white focus:outline-none transition-all resize-none leading-relaxed"
+                         />
+                       </div>
+                     </div>
+
+                     <div className="space-y-3">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2">背景与氛围 (Background)</label>
+                        <input 
+                          type="text"
+                          value={analysisResult.background}
+                          onChange={(e) => setAnalysisResult({...analysisResult, background: e.target.value})}
+                          className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl text-xs font-medium text-slate-700 focus:border-pink-400 focus:bg-white focus:outline-none transition-all"
+                        />
+                      </div>
+
+                     <div className="space-y-4 pt-6 border-t border-slate-100">
+                       <div className="flex items-center justify-between">
+                         <label className="text-[11px] font-black text-pink-500 uppercase tracking-widest">分镜脚本详细设定 (Shot List)</label>
+                         <span className="text-[9px] font-bold text-white bg-slate-900 px-3 py-1 rounded-full uppercase tracking-wider shadow-md">{analysisResult.gridType === 'single' ? '单张模式' : analysisResult.gridType === '4-grid' ? '四宫格' : '九宫格'}</span>
+                       </div>
+                       <div className="space-y-4">
+                         {analysisResult.shots?.map((shot, idx) => (
+                           <div key={idx} className="flex gap-5 items-start">
+                             <div className="w-8 h-8 rounded-full bg-pink-100 text-pink-500 flex items-center justify-center text-[10px] font-black shrink-0 mt-3 shadow-sm border border-pink-200">
+                               {idx + 1}
+                             </div>
+                             <textarea
+                               value={shot}
+                               onChange={(e) => {
+                                 const newShots = [...(analysisResult.shots || [])];
+                                 newShots[idx] = e.target.value;
+                                 setAnalysisResult({...analysisResult, shots: newShots});
+                               }}
+                               className="flex-1 min-h-[90px] p-5 bg-white border-2 border-slate-100 rounded-2xl text-xs text-slate-600 focus:border-pink-400 focus:ring-4 focus:ring-pink-50 focus:outline-none transition-all resize-none leading-relaxed shadow-sm"
+                             />
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   </div>
+                 </div>
+
+                 <div className="p-8 bg-slate-50 border-t border-slate-100 flex items-center justify-end">
+                    <button 
+                      onClick={handleExecuteGeneration}
+                      className="px-12 py-5 bg-slate-900 hover:bg-black text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.25em] shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all flex items-center gap-3"
+                    >
+                      <span>确认脚本并生成图像</span>
+                      <svg className="w-4 h-4 text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                    </button>
+                 </div>
+               </div>
+             )}
+
             {isGenerating && (
               <div className="sticky top-8 z-50 mb-10 bg-white/90 backdrop-blur-2xl border-4 border-pink-100 rounded-[2.5rem] p-6 shadow-2xl flex items-center gap-5">
                 <div className="w-10 h-10 border-4 border-pink-400 border-t-transparent rounded-full animate-spin"></div>
@@ -396,8 +387,8 @@ const App: React.FC = () => {
               </div>
             )}
 
-            {!isGenerating && history.length === 0 && (
-              <div className="h-full min-h-[500px] border-[6px] border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-12 text-center group hover:border-pink-200 transition-colors cursor-default select-none">
+            {!isGenerating && history.length === 0 && !showScriptEditor && (
+              <div className="h-full min-h-[500px] border-[6px] border-dashed border-slate-200 rounded-[3rem] flex flex-col items-center justify-center p-12 text-center group hover:border-pink-200 transition-colors cursor-default select-none animate-in fade-in duration-700">
                 <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6 text-slate-300 group-hover:bg-pink-50 group-hover:text-pink-400 transition-all duration-500">
                   <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                 </div>

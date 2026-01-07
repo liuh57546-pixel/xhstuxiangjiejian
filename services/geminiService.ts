@@ -28,13 +28,13 @@ export const analyzePrompt = async (
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
-  // 深度风格与摄影语言反推指令 (保留核心摄影美学)
+  // 深度风格与摄影语言反推指令
   const styleInstruction = useReferenceStyle
     ? `3. 深度摄影美学与质感反推 (Crucial Style Extraction)：
        不要只描述"风格"，必须基于以下 5 个维度深度解构图2的视觉语言：
-       A. 摄影器材与介质: 胶片感(Grainy film)? 数码直出? 镜头畸变?
-       B. 光线物理属性: 寻找直射闪光灯(Direct flash)、硬光、过曝点。拒绝平庸柔光。
-       C. 生理细节与真实感: 皮肤纹理(Texture/Pores)、真实妆容瑕疵、发丝凌乱感。
+       A. 摄影器材与介质: 胶片感? 数码直出? 镜头畸变?
+       B. 光线物理属性: 寻找直射闪光灯、硬光、过曝点。拒绝平庸柔光。
+       C. 生理细节与真实感: 皮肤纹理、真实妆容瑕疵、发丝凌乱感。
        D. 构图的随意性: 动态模糊、不完美构图、生活快照感。
        E. 氛围与环境叙事: 空气感、环境杂物。`
     : `3. 大气：高品质商业摄影棚灯光，完美布光。`;
@@ -48,37 +48,40 @@ export const analyzePrompt = async (
     : `5. 正面表情引擎：忽略图2表情，生成一系列自然亲和的正面情绪描述。`;
 
   const prompt = `分析图像为 Gemini 3 Pro 编写极具电影感或胶片感的视觉脚本。
+  
+  ★ 重要指令：所有返回的 JSON 字段内容必须完全使用简体中文 (Simplified Chinese) 进行描述。不要使用英文。
+
   任务：提取图1的人脸，提取图2的构图、景别、穿着细节和深度摄影风格。
   
   关键要求：
-  1. 景别一致性：深度分析图2的每一帧是【全身】、【半身】还是【特写】，必须在脚本中明确指定景别（Shot Size）。
+  1. 景别一致性：深度分析图2的每一帧是【全身】、【半身】还是【特写】，必须在脚本中明确指定景别。
   2. 角色提取：从图1提取面部细节。
   ${styleInstruction}
   ${hairInstruction}
   ${expressionInstruction}
   
-  6. 极致服饰与材质物理分析 (High-Fidelity Fashion & Texture Analysis):
-     - 不要预设任何特定款式（如露肩或丝袜），而是**完全忠实于图2**的视觉信息，但描述必须极度细腻。
-     - **材质物理属性**：深度分析衣物是硬挺的（如丹宁、皮革）、柔软的（如棉麻）、还是流动的（如丝绸、薄纱）。描述光线如何在织物表面反射（哑光、丝光、高光）。
-     - **穿着状态**：观察衣褶的走向、布料的垂坠感、是否贴身或宽松。
-     - **透视与层次**：如果存在透明/半透明材质（如蕾丝、薄纱、丝袜），需精确描述其透光度和肤色透出的质感。
+  6. 极致服饰与材质物理分析:
+     - 不要预设任何特定款式，而是**完全忠实于图2**的视觉信息。
+     - **材质物理属性**：深度分析衣物是硬挺的（如丹宁、皮革）、柔软的（如棉麻）、还是流动的（如丝绸、薄纱）。描述光线如何在织物表面反射。
+     - **穿着状态**：观察衣褶的走向、布料的垂坠感。
+     - **透视与层次**：如果存在透明/半透明材质，需精确描述其透光度。
      
   7. 鞋履检测：仅当图2（参考图）中**清晰可见**鞋子时，请简要描述鞋子的款式和颜色；否则**严禁捏造**。
   8. 肢体：放松优雅的手部，严禁握拳。
   
-  9. 黄金比例与体态微调 (Pose Refinement & Golden Ratio):
+  9. 黄金比例与体态微调:
      - **核心原则：严格保持图2的原始姿势和动作，不要改变动作本身。**
-     - **美学优化**：在保持原动作的基础上，应用“黄金比例”美学视角进行微调。例如：如果图2有腿部展示，通过微调透视或延伸感，让肢体线条看起来更流畅、修长（Elongated visual lines），避免视觉上的压缩感，但绝不能把“坐姿”改成“站姿”，也不能强行改变腿部摆放位置。
+     - **美学优化**：在保持原动作的基础上，应用“黄金比例”美学视角进行微调。例如：如果图2有腿部展示，通过微调透视或延伸感，让肢体线条看起来更流畅、修长，避免视觉上的压缩感。
   
   返回 JSON 格式：
   {
-    "subject": "详细的角色描述",
-    "appearance": "服饰细节（重点：材质物理属性、光泽感、垂坠感）",
-    "physique": "体态描述（包含基于原动作的线条美化）",
-    "background": "背景环境",
-    "style": "包含摄影器材、光线物理、瑕疵质感、构图语言的详细风格描述",
+    "subject": "详细的角色描述（中文）",
+    "appearance": "服饰细节（重点：材质物理属性、光泽感、垂坠感）（中文）",
+    "physique": "体态描述（包含基于原动作的线条美化）（中文）",
+    "background": "背景环境（中文）",
+    "style": "包含摄影器材、光线物理、瑕疵质感、构图语言的详细风格描述（中文）",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["分镜 1: [景别] + [摄影角度] + [光线] + [动作] + [穿着细节] + [表情]", "..."]
+    "shots": ["分镜 1: [景别] + [摄影角度] + [光线] + [动作] + [穿着细节] + [表情] (中文)", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -130,17 +133,15 @@ export const generateImage = async (
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
 
-  // 在生成阶段，移除特定的诱惑性检查，转为强调反推得到的物理材质
+  // 在生成阶段，将中文提示词包装在英文指令中，确保模型理解意图但内容使用分析结果
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
     
     PHOTOGRAPHY & TEXTURE: ${analysis.style}. 
-    (Emphasize film grain, specific lens characteristics, lighting imperfections, and skin texture as described).
     
     CHARACTER DNA: ${analysis.subject}
     
     OUTFIT & FABRIC PHYSICS: ${analysis.appearance}
-    (Render the exact fabric textures - silk, denim, leather, cotton - with realistic light interaction and drape as analyzed).
     
     PHYSIQUE: ${analysis.physique}
     BACKGROUND: ${analysis.background}
