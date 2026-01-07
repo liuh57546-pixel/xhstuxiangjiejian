@@ -28,9 +28,18 @@ export const analyzePrompt = async (
 ): Promise<PromptAnalysis> => {
   const ai = new GoogleGenAI({ apiKey: apiKey || process.env.API_KEY || '' });
   
+  // 深度风格与摄影语言反推指令
   const styleInstruction = useReferenceStyle
-    ? `3. 大气克隆：复制图2的光影（如柔焦、虚化、暖光）。`
-    : `3. 大气：高品质商业摄影棚灯光。`;
+    ? `3. 深度摄影美学与质感反推 (Crucial Style Extraction)：
+       不要只描述"风格"，必须基于以下 5 个维度深度解构图2的视觉语言：
+       A. 摄影器材与介质 (Hardware): 是胶片(Kodak Portra/Gold, grainy)? 早期数码(CCD sensor)? 还是手机直出? 镜头是广角畸变还是长焦压缩?
+       B. 光线物理属性 (Lighting Physics): 寻找光线的"不完美"。是直射闪光灯(Direct flash)? 强硬阴影(Hard shadows)? 还是过曝高光(Blown-out highlights)? 严禁默认使用"柔光"。
+       C. 生理细节与真实感 (Imperfections): 描述皮肤纹理(Pores, texture)、面部出油(Oiliness)、散乱的发丝(Stray hairs, messy)、脱妆或真实感妆容。拒绝磨皮感。
+       D. 构图的随意性 (Casual Composition): 是否有动态模糊(Motion blur)? 失焦(Out of focus)? 荷兰角(Dutch angle)? 像偷拍或快照(Snapshot aesthetic)?
+       E. 氛围与环境叙事: 空气中的尘埃、脏窗户、杂乱背景(Cluttered background)或特定的情绪氛围。
+       
+       将以上提取的所有细节浓缩进 "style" 字段中。`
+    : `3. 大气：高品质商业摄影棚灯光，完美布光。`;
 
   const hairInstruction = useReferenceHair
     ? `4. 发型覆盖：忽略图1的发型，完全复制图2的发型和颜色。`
@@ -40,8 +49,8 @@ export const analyzePrompt = async (
     ? `5. 表情克隆：分析图2的微表情（眼神、嘴角弧度、情绪氛围），并将其转化到脚本中。`
     : `5. 正面表情引擎：忽略图2表情，生成一系列自然亲和的正面情绪描述（如：恬静微笑、俏皮眼神、优雅喜悦、梦幻神情）。`;
 
-  const prompt = `分析图像为 Gemini 3 Pro 编写视觉脚本。
-  任务：提取图1的人脸，提取图2的构图、景别和风格。
+  const prompt = `分析图像为 Gemini 3 Pro 编写极具电影感或胶片感的视觉脚本。
+  任务：提取图1的人脸，提取图2的构图、景别和深度摄影风格。
   
   关键要求：
   1. 景别一致性：深度分析图2的每一帧是【全身】、【半身】还是【特写】，必须在脚本中明确指定景别（Shot Size）。
@@ -60,9 +69,9 @@ export const analyzePrompt = async (
     "appearance": "服饰细节（若参考图可见鞋子则包含鞋子描述，否则不包含）",
     "physique": "体态描述（包含长腿与姿态）",
     "background": "背景环境",
-    "style": "视觉风格",
+    "style": "包含摄影器材、光线物理、瑕疵质感、构图语言的详细风格描述",
     "gridType": "single | 4-grid | 9-grid",
-    "shots": ["分镜 1: [景别：全身/半身/特写] + [角度] + [具体表情] + [动作]", "..."]
+    "shots": ["分镜 1: [景别] + [摄影角度/焦段] + [光线描述] + [动作] + [表情]", "..."]
   }`;
 
   const response = await ai.models.generateContent({
@@ -87,7 +96,7 @@ export const analyzePrompt = async (
       action: "Natural",
       composition: data.gridType,
       background: data.background || "dreamy",
-      style: data.style || "soft focus",
+      style: data.style || "film photography, grain",
       quality: "Masterpiece",
       gridType: data.gridType || "single",
       shots: data.shots || []
@@ -114,15 +123,22 @@ export const generateImage = async (
   const isGrid = analysis.gridType !== 'single';
   const targetSize = isGrid ? "4K" : "2K";
 
+  // 在生成阶段，强调摄影语言和质感，移除默认的 "soft lighting"
   const finalPrompt = `
     CREATE A ${gridDesc} IN ${targetSize} RESOLUTION.
-    VISUAL STYLE: ${analysis.style}, soft lighting.
+    
+    PHOTOGRAPHY & TEXTURE: ${analysis.style}. 
+    (Emphasize film grain, specific lens characteristics, lighting imperfections, and skin texture as described).
+    
     CHARACTER DNA: ${analysis.subject}
     OUTFIT: ${analysis.appearance}
     PHYSIQUE: ${analysis.physique}
     BACKGROUND: ${analysis.background}
-    CRITICAL RULES: RELAXED ELEGANT HANDS. FACE MUST LOOK LIKE IMAGE 1. 
-    ADHERE TO THE SPECIFIC SHOT SIZES (Full body, medium, close-up) IN THE SCRIPT.
+    
+    CRITICAL RULES: 
+    1. RELAXED ELEGANT HANDS. 
+    2. FACE MUST LOOK LIKE IMAGE 1. 
+    3. ADHERE TO THE SPECIFIC SHOT SIZES (Full body, medium, close-up) IN THE SCRIPT.
     
     DETAILED SCRIPT:
     ${analysis.shots?.join('\n\n') || ''}
@@ -170,9 +186,12 @@ export const upscaleImage = async (
         1. OUTPUT ONLY ONE (1) SINGLE SEAMLESS IMAGE.
         2. NO GRIDS, NO MULTIPLE PANELS, NO COLLAGES.
         3. NO BORDERS OR WHITE LINES.
-        4. KEEP THE SHOT SIZE (Full body, half body, or close-up) EXACTLY AS IN THE INPUT IMAGE.
+        4. KEEP THE SHOT SIZE EXACTLY AS INPUT.
         
-        ENHANCEMENT TARGET:
+        PHOTOGRAPHY STYLE ENHANCEMENT:
+        Retain the original film grain, lens distortion, and lighting atmosphere. Do not over-smooth the skin.
+        
+        CONTENT DESCRIPTION:
         ${description.substring(0, 500)}` }
       ]
     },
