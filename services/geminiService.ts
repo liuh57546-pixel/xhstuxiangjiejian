@@ -203,6 +203,9 @@ export const upscaleImage = async (
         PHOTOGRAPHY STYLE ENHANCEMENT:
         Retain the original film grain, lens distortion, and lighting atmosphere. Do not over-smooth the skin.
         
+        ATMOSPHERE & SKIN TEXTURE INSTRUCTIONS (CRITICAL):
+        这是一张拥有摄影质感的模拟照片，画面带有自然的颗粒感和电影感色调。在提升分辨率的同时，请重点强化真实的细节表现：人物皮肤必须呈现出自然的纹理，包括清晰可见的毛孔、细微的瑕疵、雀斑以及眼角的干纹，完全摒弃任何过度磨皮或塑料般的平滑感。光影应保持自然、真实且不刻意，保留抓拍瞬间的生动与不完美感。
+        
         CONTENT & TEXTURE RESTORATION:
         Focus on hyper-realistic fabric textures and skin details. Maintain the original clothing fit and drape exactly as seen in the base image.
         
